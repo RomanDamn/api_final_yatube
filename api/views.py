@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, viewsets, mixins
 
 from .models import Follow, Group, Post
 from .permissions import OwnResourcePermission
@@ -7,9 +8,17 @@ from .serializers import (
     CommentSerializer, FollowSerializer, GroupSerializer, PostSerializer)
 
 
+class GetPostViewSet(mixins.CreateModelMixin,
+                     mixins.ListModelMixin,
+                     viewsets.GenericViewSet):
+    pass
+
+
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [OwnResourcePermission]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['group']
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -35,13 +44,13 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(GetPostViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [OwnResourcePermission]
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(GetPostViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     permission_classes = [OwnResourcePermission]
